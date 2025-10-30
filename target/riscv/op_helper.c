@@ -780,4 +780,15 @@ void helper_custom_crush(CPURISCVState *env, target_ulong dst, target_ulong src,
     }
 }
 
+void helper_custom_expand(CPURISCVState *env, target_ulong dst, target_ulong src,
+                       target_ulong num)
+{
+    size_t j = 0;
+    for (size_t i = 0; i < num; i++) {
+        uint8_t val = cpu_ldl_data(env, src + i);
+        cpu_stl_data(env, dst + j++, val & 0x0F);
+        cpu_stl_data(env, dst + j++, (val >> 4) & 0x0F);
+    }
+}
+
 #endif /* !CONFIG_USER_ONLY */

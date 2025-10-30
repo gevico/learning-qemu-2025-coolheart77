@@ -1253,3 +1253,13 @@ static bool trans_custom_crush(DisasContext *ctx, arg_custom_dma *a)
     gen_helper_custom_crush(tcg_env, dst, src, num);
     return true;
 }
+
+static bool trans_custom_expand(DisasContext *ctx, arg_custom_dma *a)
+{
+    TCGv src = cpu_gpr[a->rs1];
+    TCGv num = cpu_gpr[a->rs2];
+    TCGv dst = cpu_gpr[a->rd];
+
+    gen_helper_custom_expand(tcg_env, dst, src, num);
+    return true;
+}
