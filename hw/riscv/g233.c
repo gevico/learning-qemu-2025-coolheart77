@@ -74,7 +74,8 @@ static void g233_soc_realize(DeviceState *dev, Error **errp)
     const MemMapEntry *memmap = g233_memmap;
 
     /* CPUs realize */
-    if(!sysbus_realize(SYS_BUS_DEVICE(&s->cpus), errp)) {
+    if(!sysbus_realize(SYS_BUS_DEVICE(&s->cpus), errp)) 
+    {
         return;
     }
 

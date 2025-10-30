@@ -734,4 +734,29 @@ void helper_custom_dma(CPURISCVState *env, target_ulong dst, target_ulong src,
     }
 }
 
+
+void helper_custom_sort(CPURISCVState *env, target_ulong sort_num, target_ulong array_addr,
+                       target_ulong array_num)
+{
+    int n = sort_num>=array_num ? array_num : sort_num;
+    for (int i = 0; i < n - 1; i++) {
+        int swapped = 0;
+        for (int j = 0; j < n - i - 1; j++) {
+            target_ulong j_addr = array_addr + j * sizeof(uint32_t);
+            target_ulong j1_addr = array_addr + (j + 1) * sizeof(uint32_t);
+            uint32_t val_j = cpu_ldl_data(env,  j_addr);
+            uint32_t val_j1 = cpu_ldl_data(env, j1_addr);
+            if (val_j > val_j1) {
+                uint32_t temp = val_j;
+                cpu_stl_data(env, j_addr, val_j1);
+                cpu_stl_data(env, j1_addr, temp);
+                swapped = 1;
+            }
+        }
+        if (!swapped) {
+            break;
+        }
+    }
+}
+
 #endif /* !CONFIG_USER_ONLY */
