@@ -717,4 +717,21 @@ target_ulong helper_hyp_hlvx_wu(CPURISCVState *env, target_ulong addr)
     return cpu_ldl_code_mmu(env, addr, oi, ra);
 }
 
+void helper_custom_dma(CPURISCVState *env, target_ulong dst, target_ulong src,
+                       target_ulong grain_size)
+{
+    int grain = grain_size & 0x3;
+    int grain_map[] = {8, 16, 32};
+    int row_size = grain<3 ? grain_map[grain] : 8;
+
+    for (int i = 0; i < row_size; i++) 
+    {
+        for (int j = 0; j < row_size; j++) 
+        {
+            uint32_t val = cpu_ldl_data(env, src + (j * row_size + i)*sizeof(uint32_t));
+            cpu_stl_data(env, dst + (i * row_size + j)*sizeof(uint32_t), val);
+        }
+    }
+}
+
 #endif /* !CONFIG_USER_ONLY */

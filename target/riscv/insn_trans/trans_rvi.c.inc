@@ -1221,3 +1221,15 @@ static bool trans_csrrci(DisasContext *ctx, arg_csrrci * a)
                              ctx->zero, ctx->zero, mask, ctx->zero);
     }
 }
+
+static bool trans_custom_dma(DisasContext *ctx, arg_custom_dma *a)
+{
+    // gen_helper_custom_dma(tcg_env, tcg_constant_tl(a->rs2), tcg_constant_tl(a->rs1), tcg_constant_tl(a->rd));
+    // return true;
+    TCGv src = cpu_gpr[a->rs1];
+    TCGv dst = cpu_gpr[a->rs2];
+    TCGv size = cpu_gpr[a->rd];
+
+    gen_helper_custom_dma(tcg_env, size, src, dst);
+    return true;
+}
