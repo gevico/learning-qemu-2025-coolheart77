@@ -135,6 +135,9 @@ void spi0_interrupt_handler(void)
     
     spi_state.interrupt_count++;
     
+    printf("IRQ #%d: SR=0x%02X, CR2=0x%02X\n", 
+        spi_state.interrupt_count, sr, cr2);
+
     /* Check for error conditions first */
     if ((cr2 & SPI_CR2_ERRIE) && (sr & (SPI_SR_UDR | SPI_SR_OVR))) {
         LOG_ERR("IRQ #%d: UDR=%d, OVR=%d", 
@@ -241,11 +244,13 @@ static int g233_spi_transfer_interrupt(const uint8_t *tx_data, uint8_t *rx_data,
     REG32(SPI_CR2_OFFSET) = SPI_CR2_TXEIE | SPI_CR2_RXNEIE | SPI_CR2_ERRIE;
     
     /* Wait for transfer completion */
+    printf("Starting transfer...\n");
     while (!spi_state.transfer_complete && !spi_state.error_occurred && timeout_count < max_timeout) {
         /* Don't write to DR here - let interrupts handle the transfer */
         for (volatile int i = 0; i < 100; i++); /* Small delay */
         timeout_count++;
     }
+    printf("Timeout count: %d\n", timeout_count);
     
     /* Disable interrupts */
     REG32(SPI_CR2_OFFSET) = 0;

@@ -74,9 +74,8 @@ enum {
 enum {
     G233_UART0_IRQ  = 1,
     G233_PWM0_IRQ   = 2,
+    G233_SPI_IRQ    = 3,
     G233_GPIO0_IRQ0 = 8,
-
-    G233_SPI_IRQ    = 20,
 };
 
 #define G233_PLIC_HART_CONFIG "M"
