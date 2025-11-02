@@ -34,6 +34,8 @@
 #include "hw/intc/sifive_plic.h"
 #include "hw/misc/unimp.h"
 #include "hw/char/pl011.h"
+#include "hw/ssi/ssi.h"
+#include "system/block-backend.h"
 
 /* TODO: you need include some header files */
 
@@ -45,6 +47,7 @@ static const MemMapEntry g233_memmap[] = {
     [G233_DEV_UART0] =    { 0x10000000,     0x1000 },
     [G233_DEV_GPIO0] =    { 0x10012000,     0x1000 },
     [G233_DEV_PWM0] =     { 0x10015000,     0x1000 },
+    [G233_DEV_SPI]  =     { 0x10018000,     0x1000 },
     [G233_DEV_DRAM] =     { 0x80000000, 0x40000000 },
 };
 
@@ -64,6 +67,47 @@ static void g233_soc_init(Object *obj)
 
     object_initialize_child(obj, "g233-gpio0", &s->gpio,
                             TYPE_SIFIVE_GPIO);
+}
+
+static void spi_flash_realize(DeviceState *dev, Error **errp, 
+    const char* dev_name, const char* node_name, int cs_val
+  ) {
+    printf("spi_flash_realize: qdev_new -> dev=%s node=%s cs=%d\n", dev_name, node_name, cs_val);
+    G233SoCState *s = RISCV_G233_SOC(dev);
+
+    /* SPI Flash0 */
+    DeviceState *flash_dev = qdev_new(dev_name);
+    if (!flash_dev) {
+        error_report("%s: failed to create %s device", __func__, node_name);
+        return;
+    }
+
+    /* 获取 BlockDriverState */
+    BlockDriverState *bs = bdrv_lookup_bs(NULL, node_name, &error_fatal);
+    if (!bs) {
+        error_report("%s: failed to find block device %s", __func__, node_name);
+        return;
+    }
+
+    /* 创建 blk 对象并插入到 bs */
+    BlockBackend *blk = blk_new(qemu_get_aio_context(), 0, BLK_PERM_ALL);
+    blk_insert_bs(blk, bs, &error_fatal);
+
+    /* 给 flash0 设置 drive 属性 */
+    qdev_prop_set_drive_err(flash_dev, "drive", blk, &error_fatal);
+
+    /* 设置 CS 号 */
+    qdev_prop_set_uint8(flash_dev, "cs", cs_val);
+    G233SPIState *spi = OBJECT_CHECK(G233SPIState, s->spi, TYPE_G233_SPI);
+    qdev_realize_and_unref(flash_dev, BUS(spi->ssi), errp);
+
+    /* 获取 CS GPIO */
+    qemu_irq cs_line = qdev_get_gpio_in_named(flash_dev, SSI_GPIO_CS, 0);
+
+    /* 连接到 SPI 控制器 */
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->spi), cs_val + 1, cs_line);
+    printf("spi_flash_realize: realized device %s (node %s) cs=%d, gpio_cs=%p\n",
+       dev_name, node_name, cs_val, (void *)cs_line);
 }
 
 static void g233_soc_realize(DeviceState *dev, Error **errp)
@@ -134,6 +178,22 @@ static void g233_soc_realize(DeviceState *dev, Error **errp)
     create_unimplemented_device("riscv.g233.pwm0",
         memmap[G233_DEV_PWM0].base, memmap[G233_DEV_PWM0].size);
 
+    /* 创建 SPI 设备实例 */
+    s->spi = qdev_new(TYPE_G233_SPI);
+    if (!s->spi) {
+        error_report("%s: failed to create SPI device", __func__);
+        return;
+    }
+    sysbus_realize_and_unref(SYS_BUS_DEVICE(s->spi), errp);
+    /* 将 SPI 的 MMIO 映射到 SoC 地址空间 */
+    sysbus_mmio_map(SYS_BUS_DEVICE(s->spi), 0, memmap[G233_DEV_SPI].base);
+
+    /* 将 SPI 中断线连接到 PLIC 的某一中断号（G233_SPI_IRQ） */
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->spi), 0,
+                       qdev_get_gpio_in(DEVICE(s->plic), G233_SPI_IRQ));
+
+    spi_flash_realize(dev, errp, "w25x16", "flash0", 0);
+    spi_flash_realize(dev, errp, "w25x32", "flash1", 1);                 
 }
 
 static void g233_soc_class_init(ObjectClass *oc, const void *data)

@@ -21,17 +21,28 @@
 #ifndef HW_RISCV_G233_SPI_H
 #define HW_RISCV_G233_SPI_H
 
-#include "qemu/fifo8.h"
 #include "hw/sysbus.h"
 
-#define TYPE_SIFIVE_SPI "g233.spi"
+#define TYPE_G233_SPI "g233.spi"
+
+#define G233_SPI(obj) OBJECT_CHECK(G233SPIState, (obj), TYPE_G233_SPI)
 
 typedef struct G233SPIState {
     SysBusDevice parent_obj;
 
+    //regs
     uint32_t cr1;
     uint32_t cr2;
-    
+    uint32_t sr;
+    uint32_t dr;
+    uint32_t cs;
+
+    MemoryRegion mmio;
+    qemu_irq irq;
+
+    qemu_irq cs_lines[4];
+
+    SSIBus *ssi;
 } G233SPIState;
 
 #endif /* HW_RISCV_G233_SPI_H */

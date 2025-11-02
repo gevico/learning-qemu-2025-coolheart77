@@ -323,9 +323,6 @@ static void sifive_spi_realize(DeviceState *dev, Error **errp)
     memory_region_init_io(&s->mmio, OBJECT(s), &sifive_spi_ops, s,
                           TYPE_SIFIVE_SPI, 0x1000);
     sysbus_init_mmio(sbd, &s->mmio);
-
-    fifo8_create(&s->tx_fifo, FIFO_CAPACITY);
-    fifo8_create(&s->rx_fifo, FIFO_CAPACITY);
 }
 
 static const Property sifive_spi_properties[] = {
